@@ -1,56 +1,73 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
 
 // Create an MCP server
 const server = new McpServer({
-  name: "Demo",
+  name: "gitx",
   version: "1.0.0"
 });
 
+// Get gitRootDir, defaultBranch from Deno.args
+const gitRootDir = Deno.args[0];
+const defaultBranch = Deno.args[1];
+
+// Check for required arguments
+if (!gitRootDir || !defaultBranch) {
+  console.error("Usage: deno run --allow-run=git --allow-read=<repo> main.ts <gitRootDir> <defaultBranch>");
+  Deno.exit(1);
+}
+
+// Helper to run git commands
+function gitCommand(args: string[], cwd: string) {
+  return new Deno.Command("git", { args, cwd, stdout: "piped", stderr: "piped" });
+}
+
 server.tool(
   "pr_context",
-  {
-    gitDir: z.string()
-  },
-  async ({ gitDir }) => {
-    // Get default branch name
-    const branchProc = new Deno.Command("git", { args: ["symbolic-ref", "refs/remotes/origin/HEAD"], cwd: gitDir, stdout: "piped", stderr: "piped" });
-    const branchOut = await branchProc.output();
-    const branchRef = new TextDecoder().decode(branchOut.stdout).trim();
-    const defaultBranch = branchRef.replace("refs/remotes/origin/", "");
-
+  "PR context for current branch",
+  async () => {
     // Get current branch name
-    const curBranchProc = new Deno.Command("git", { args: ["rev-parse", "--abbrev-ref", "HEAD"], cwd: gitDir, stdout: "piped", stderr: "piped" });
+    const curBranchProc = gitCommand(["rev-parse", "--abbrev-ref", "HEAD"], gitRootDir);
     const curBranchOut = await curBranchProc.output();
     const currentBranch = new TextDecoder().decode(curBranchOut.stdout).trim();
 
+    // If branches are the same, return error (cannot create PR)
+    if (currentBranch === defaultBranch) {
+      return {
+        content: [
+          { type: "text", text: "Error: Current branch and default branch are the same. Cannot create a pull request from the default branch to itself." }
+        ],
+        isError: true
+      };
+    }
+
     // Get git diff (current branch vs default branch)
-    const diffCmd = ["git", "diff", `${defaultBranch}...${currentBranch}`];
-    const diffProc = new Deno.Command(diffCmd[0], { args: diffCmd.slice(1), cwd: gitDir, stdout: "piped", stderr: "piped" });
+    const diffCmd = ["diff", `${defaultBranch}...${currentBranch}`];
+    const diffProc = gitCommand(diffCmd, gitRootDir);
     const diffOut = await diffProc.output();
     const diff = new TextDecoder().decode(diffOut.stdout);
 
-    // Get git log (commits in current branch not in default branch)
-    const logCmd = ["git", "log", `${defaultBranch}..${currentBranch}`, "--oneline"];
-    const logProc = new Deno.Command(logCmd[0], { args: logCmd.slice(1), cwd: gitDir, stdout: "piped", stderr: "piped" });
+    const logCmd = ["log", `${defaultBranch}..${currentBranch}`, "--oneline"];
+    const logProc = gitCommand(logCmd, gitRootDir);
     const logOut = await logProc.output();
     const log = new TextDecoder().decode(logOut.stdout);
 
     // Get PR template
     let prTemplate = "";
     try {
-      prTemplate = await Deno.readTextFile(`${gitDir}/.github/pull_request_template.md`);
+      prTemplate = await Deno.readTextFile(`${gitRootDir}/.github/pull_request_template.md`);
     } catch {
       prTemplate = "No pull request template found.";
     }
+
     return {
       content: [
         { type: "text", text: `---GIT DIFF---\n${diff}` },
         { type: "text", text: `---GIT LOG---\n${log}` },
         { type: "text", text: `---PR TEMPLATE---\n${prTemplate}` }
-      ]
-    };
+      ],
+      isError: false
+    }
   }
 );
 

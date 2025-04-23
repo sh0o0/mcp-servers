@@ -46,6 +46,18 @@ server.tool(
       };
     }
 
+    // Check if target branch exists
+    const branchCheckProc = gitCommand(["rev-parse", "--verify", targetBranch], gitRootDir);
+    const branchCheckOut = await branchCheckProc.output();
+    if (branchCheckOut.code !== 0) {
+      return {
+        content: [
+          { type: "text", text: `Error: Target branch '${targetBranch}' does not exist.` }
+        ],
+        isError: true
+      };
+    }
+
     // Get git diff (current branch vs target branch)
     const diffCmd = ["diff", `${targetBranch}...${currentBranch}`];
     const diffProc = gitCommand(diffCmd, gitRootDir);

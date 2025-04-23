@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
+import { z } from "zod";
 
 // Create an MCP server
 const server = new McpServer({
@@ -25,29 +26,33 @@ function gitCommand(args: string[], cwd: string) {
 server.tool(
   "pr_context",
   "PR context for current branch",
-  async () => {
+  {
+    targetBranch: z.string().min(1).default(defaultBranch).describe("Target branch to compare against. Defaults to the default branch of the repository."),
+  },
+  async ({ targetBranch }) => {
+
     // Get current branch name
     const curBranchProc = gitCommand(["rev-parse", "--abbrev-ref", "HEAD"], gitRootDir);
     const curBranchOut = await curBranchProc.output();
     const currentBranch = new TextDecoder().decode(curBranchOut.stdout).trim();
 
     // If branches are the same, return error (cannot create PR)
-    if (currentBranch === defaultBranch) {
+    if (currentBranch === targetBranch) {
       return {
         content: [
-          { type: "text", text: "Error: Current branch and default branch are the same. Cannot create a pull request from the default branch to itself." }
+          { type: "text", text: "Error: Current branch and target branch are the same. Cannot create a pull request from the target branch to itself." }
         ],
         isError: true
       };
     }
 
-    // Get git diff (current branch vs default branch)
-    const diffCmd = ["diff", `${defaultBranch}...${currentBranch}`];
+    // Get git diff (current branch vs target branch)
+    const diffCmd = ["diff", `${targetBranch}...${currentBranch}`];
     const diffProc = gitCommand(diffCmd, gitRootDir);
     const diffOut = await diffProc.output();
     const diff = new TextDecoder().decode(diffOut.stdout);
 
-    const logCmd = ["log", `${defaultBranch}..${currentBranch}`, "--oneline"];
+    const logCmd = ["log", `${targetBranch}..${currentBranch}`, "--oneline"];
     const logProc = gitCommand(logCmd, gitRootDir);
     const logOut = await logProc.output();
     const log = new TextDecoder().decode(logOut.stdout);

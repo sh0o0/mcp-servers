@@ -28,34 +28,32 @@ server.tool(
   async () => {
     const targetBranch = defaultBranch;
 
-    // Get current branch name
     const curBranchProc = gitCommand(["rev-parse", "--abbrev-ref", "HEAD"], gitRootDir);
     const curBranchOut = await curBranchProc.output();
     const currentBranch = new TextDecoder().decode(curBranchOut.stdout).trim();
 
-    // If branches are the same, return error (cannot create PR)
     if (currentBranch === targetBranch) {
       return {
         content: [
-          { type: "text", text: "Error: Current branch and target branch are the same. Cannot create a pull request from the target branch to itself." }
+          { type: "text", text: "Error: Current branch and target branch are the same. Cannot create a pull request from the target branch to itself." },
+          { type: "text", text: `Current branch: ${currentBranch}` }
         ],
         isError: true
       };
     }
 
-    // Check if target branch exists
     const branchCheckProc = gitCommand(["rev-parse", "--verify", targetBranch], gitRootDir);
     const branchCheckOut = await branchCheckProc.output();
     if (branchCheckOut.code !== 0) {
       return {
         content: [
-          { type: "text", text: `Error: Target branch '${targetBranch}' does not exist.` }
+          { type: "text", text: `Error: Target branch '${targetBranch}' does not exist.` },
+          { type: "text", text: `Current branch: ${currentBranch}` }
         ],
         isError: true
       };
     }
 
-    // Get git diff (current branch vs target branch)
     const diffCmd = ["diff", `${targetBranch}...${currentBranch}`];
     const diffProc = gitCommand(diffCmd, gitRootDir);
     const diffOut = await diffProc.output();
@@ -66,7 +64,6 @@ server.tool(
     const logOut = await logProc.output();
     const log = new TextDecoder().decode(logOut.stdout);
 
-    // Get PR template
     let prTemplate = "";
     try {
       prTemplate = await Deno.readTextFile(`${gitRootDir}/.github/pull_request_template.md`);
@@ -76,6 +73,8 @@ server.tool(
 
     return {
       content: [
+        { type: "text", text: `Current branch: ${currentBranch}` },
+        { type: "text", text: `Target branch: ${targetBranch}` },
         { type: "text", text: `---GIT DIFF---\n${diff}` },
         { type: "text", text: `---GIT LOG---\n${log}` },
         { type: "text", text: `---PR TEMPLATE---\n${prTemplate}` }

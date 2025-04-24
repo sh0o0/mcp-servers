@@ -1,0 +1,16 @@
+{
+    "servers": {
+        "mcp-server-time": {
+            "command": "deno",
+            "args": [
+                "run",
+                "--allow-run=git",
+                "--allow-read",
+                "/Users/shotaronakata/Documents/development/sh0o0/mcp-servers/gitx/main.ts",
+                "/Users/shotaronakata/Documents/development/sh0o0/mcp-servers",
+                "main"
+            ],
+            "env": {}
+        }
+    }
+}

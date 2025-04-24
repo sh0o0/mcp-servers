@@ -64,6 +64,11 @@ server.tool(
     const logOut = await logProc.output();
     const log = new TextDecoder().decode(logOut.stdout);
 
+    const remoteCmd = ["remote", "-v"];
+    const remoteProc = gitCommand(remoteCmd, gitRootDir);
+    const remoteOut = await remoteProc.output();
+    const remote = new TextDecoder().decode(remoteOut.stdout);
+
     let prTemplate = "";
     try {
       prTemplate = await Deno.readTextFile(`${gitRootDir}/.github/pull_request_template.md`);
@@ -75,6 +80,7 @@ server.tool(
       content: [
         { type: "text", text: `Current branch: ${currentBranch}` },
         { type: "text", text: `Target branch: ${targetBranch}` },
+        { type: "text", text: `---GIT REMOTE---\n${remote}` },
         { type: "text", text: `---GIT DIFF---\n${diff}` },
         { type: "text", text: `---GIT LOG---\n${log}` },
         { type: "text", text: `---PR TEMPLATE---\n${prTemplate}` }

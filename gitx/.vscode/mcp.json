@@ -1,6 +1,6 @@
 {
     "servers": {
-        "mcp-server-time": {
+        "gitx": {
             "command": "deno",
             "args": [
                 "run",

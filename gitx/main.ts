@@ -1,6 +1,5 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { z } from "zod";
 
 // Create an MCP server
 const server = new McpServer({
@@ -26,10 +25,8 @@ function gitCommand(args: string[], cwd: string) {
 server.tool(
   "pr_context",
   "PR context for current branch",
-  {
-    targetBranch: z.string().min(1).default(defaultBranch).describe("Target branch to compare against. Defaults to the default branch of the repository."),
-  },
-  async ({ targetBranch }) => {
+  async () => {
+    const targetBranch = defaultBranch;
 
     // Get current branch name
     const curBranchProc = gitCommand(["rev-parse", "--abbrev-ref", "HEAD"], gitRootDir);

@@ -22,15 +22,24 @@ function gitCommand(args: string[], cwd: string) {
   return new Deno.Command("git", { args, cwd, stdout: "piped", stderr: "piped" });
 }
 
+// Helper to run git command and decode stdout or stderr
+async function runGit(args: string[], cwd: string): Promise<{ stdout: string; stderr: string; code: number }> {
+  const proc = gitCommand(args, cwd);
+  const out = await proc.output();
+  return {
+    stdout: new TextDecoder().decode(out.stdout),
+    stderr: new TextDecoder().decode(out.stderr),
+    code: out.code
+  };
+}
+
 server.tool(
   "pr_context",
   "PR context for current branch",
   async () => {
     const targetBranch = defaultBranch;
 
-    const curBranchProc = gitCommand(["rev-parse", "--abbrev-ref", "HEAD"], gitRootDir);
-    const curBranchOut = await curBranchProc.output();
-    const currentBranch = new TextDecoder().decode(curBranchOut.stdout).trim();
+    const currentBranch = (await runGit(["rev-parse", "--abbrev-ref", "HEAD"], gitRootDir)).stdout.trim();
 
     if (currentBranch === targetBranch) {
       return {
@@ -42,9 +51,8 @@ server.tool(
       };
     }
 
-    const branchCheckProc = gitCommand(["rev-parse", "--verify", targetBranch], gitRootDir);
-    const branchCheckOut = await branchCheckProc.output();
-    if (branchCheckOut.code !== 0) {
+    const branchCheck = await runGit(["rev-parse", "--verify", targetBranch], gitRootDir);
+    if (branchCheck.code !== 0) {
       return {
         content: [
           { type: "text", text: `Error: Target branch '${targetBranch}' does not exist.` },
@@ -54,20 +62,9 @@ server.tool(
       };
     }
 
-    const diffCmd = ["diff", `${targetBranch}...${currentBranch}`];
-    const diffProc = gitCommand(diffCmd, gitRootDir);
-    const diffOut = await diffProc.output();
-    const diff = new TextDecoder().decode(diffOut.stdout);
-
-    const logCmd = ["log", `${targetBranch}..${currentBranch}`, "--oneline"];
-    const logProc = gitCommand(logCmd, gitRootDir);
-    const logOut = await logProc.output();
-    const log = new TextDecoder().decode(logOut.stdout);
-
-    const remoteCmd = ["remote", "-v"];
-    const remoteProc = gitCommand(remoteCmd, gitRootDir);
-    const remoteOut = await remoteProc.output();
-    const remote = new TextDecoder().decode(remoteOut.stdout);
+    const diff = (await runGit(["diff", `${targetBranch}...${currentBranch}`], gitRootDir)).stdout;
+    const log = (await runGit(["log", `${targetBranch}..${currentBranch}`, "--oneline"], gitRootDir)).stdout;
+    const remote = (await runGit(["remote", "-v"], gitRootDir)).stdout;
 
     let prTemplate = "";
     try {

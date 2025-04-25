@@ -75,11 +75,11 @@ server.tool(
 
     return {
       content: [
-        { type: "text", text: `Current branch: ${currentBranch}` },
-        { type: "text", text: `Target branch: ${targetBranch}` },
+        { type: "text", text: `---CURRENT BRANCH---\n${currentBranch}` },
+        { type: "text", text: `---TARGET BRANCH---\n${targetBranch}` },
         { type: "text", text: `---GIT REMOTE---\n${remote}` },
-        { type: "text", text: `---GIT DIFF---\n${diff}` },
         { type: "text", text: `---GIT LOG---\n${log}` },
+        { type: "text", text: `---GIT DIFF---\n${diff}` },
         { type: "text", text: `---PR TEMPLATE---\n${prTemplate}` }
       ],
       isError: false

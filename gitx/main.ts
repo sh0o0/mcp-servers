@@ -34,8 +34,8 @@ async function runGit(args: string[], cwd: string): Promise<{ stdout: string; st
 }
 
 server.tool(
-  "pr_context",
-  "PR context for current branch",
+  "get_pull_request_context",
+  "Get pull request context for the current branch",
   async () => {
     const targetBranch = defaultBranch;
 
@@ -62,7 +62,6 @@ server.tool(
       };
     }
 
-    const diff = (await runGit(["diff", `${targetBranch}...${currentBranch}`], gitRootDir)).stdout;
     const log = (await runGit(["log", `${targetBranch}..${currentBranch}`, "--oneline"], gitRootDir)).stdout;
     const remote = (await runGit(["remote", "-v"], gitRootDir)).stdout;
 
@@ -79,7 +78,6 @@ server.tool(
         { type: "text", text: `---TARGET BRANCH---\n${targetBranch}` },
         { type: "text", text: `---GIT REMOTE---\n${remote}` },
         { type: "text", text: `---GIT LOG---\n${log}` },
-        { type: "text", text: `---GIT DIFF---\n${diff}` },
         { type: "text", text: `---PR TEMPLATE---\n${prTemplate}` }
       ],
       isError: false

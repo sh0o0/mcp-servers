@@ -62,7 +62,8 @@ server.tool(
       };
     }
 
-    const log = (await runGit(["log", `${targetBranch}..${currentBranch}`, "--oneline"], gitRootDir)).stdout;
+    const baseCommit = (await runGit(["merge-base", targetBranch, currentBranch], gitRootDir)).stdout.trim();
+    const log = (await runGit(["log", `${baseCommit}..${currentBranch}`, "--oneline"], gitRootDir)).stdout;
     const remote = (await runGit(["remote", "-v"], gitRootDir)).stdout;
 
     let prTemplate = "";

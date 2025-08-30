@@ -1,6 +1,6 @@
 {
     "servers": {
-        "codex-search": {
+        "web-search": {
             "command": "deno",
             "args": [
                 "run",

@@ -8,9 +8,9 @@ server.registerTool(
   "web_search",
   {
     title: "Web Search",
-    description: "Search the web with gpt-5. Pass { query: string }.",
+    description: "Search the web using natural language queries. Pass { query: string }.",
     inputSchema: {
-      query: z.string().min(1, "query is required").describe("Search query"),
+      query: z.string().min(1, "query is required").describe("Natural language search query",),
     },
   },
   async ({ query }) => {
@@ -21,6 +21,7 @@ server.registerTool(
         "gpt-5",
         'exec',
         "--json",
+        "--skip-git-repo-check",
         `必ずweb検索機能を使ってください。\n${query}`,
       ],
       stdout: "piped",

@@ -14,14 +14,31 @@ server.registerTool(
     },
   },
   async ({ query }) => {
-    const cmd = new Deno.Command("codex", {
-      args: ["--search", "--model", "gpt-5", 'exec', '--', `web検索機能を必ず使ってください。\n${query}`],
+    const codex = new Deno.Command("codex", {
+      args: [
+        "--search",
+        "--model",
+        "gpt-5",
+        'exec',
+        "--json",
+        `必ずweb検索機能を使ってください。\n${query}`,
+      ],
       stdout: "piped",
       stderr: "piped",
-    });
+    }).spawn();
+    const jq = new Deno.Command("jq", {
+      args: [
+        '-Rr',
+        'fromjson? | select(.msg?.type=="agent_message") | .msg.message'
+      ],
+      stdin: "piped",
+      stdout: "piped",
+      stderr: "piped",
+    }).spawn();
 
     try {
-      const out = await cmd.output();
+      await codex.stdout.pipeTo(jq.stdin);
+      const out = await jq.output();
       const stdout = new TextDecoder().decode(out.stdout).trim();
       const stderr = new TextDecoder().decode(out.stderr).trim();
 
@@ -33,7 +50,7 @@ server.registerTool(
               text: `Error running codex (${out.code}): ${stderr || stdout}`,
             },
           ],
-          isError: true, // ツール実行時エラーは isError を使う
+          isError: true,
         };
       }
 

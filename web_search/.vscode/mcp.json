@@ -1,0 +1,13 @@
+{
+    "servers": {
+        "codex-search": {
+            "command": "deno",
+            "args": [
+                "run",
+                "--allow-run=codex",
+                "/Users/shotaronakata/Documents/development/sh0o0/mcp-servers/codex-search/main.ts"
+            ],
+            "env": {}
+        }
+    }
+}
